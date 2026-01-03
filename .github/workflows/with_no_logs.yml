@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: with_no_logs
 on:
   schedule:
     - cron: "0 17 * * *"
