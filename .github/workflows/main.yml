@@ -1,0 +1,73 @@
+name: Build mosdns-x Docker Variants
+on:
+  schedule:
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Get latest release tags
+        id: get_tag
+        run: |
+          LATEST_TAG=$(curl -s https://api.github.com/repos/pmkol/mosdns-x/releases/latest | jq -r .tag_name)
+          LATEST_TAG_MOD=$(curl -s https://api.github.com/repos/bibicadotnet/mosdns-x/releases/latest | jq -r .tag_name)
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "tag_mod=$LATEST_TAG_MOD" >> $GITHUB_OUTPUT
+      
+      - name: Check existing tags
+        id: check
+        run: |
+          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag }} > /dev/null 2>&1 && echo "original=true" >> $GITHUB_OUTPUT || echo "original=false" >> $GITHUB_OUTPUT
+          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag_mod }}-mod > /dev/null 2>&1 && echo "mod=true" >> $GITHUB_OUTPUT || echo "mod=false" >> $GITHUB_OUTPUT
+      
+      - name: Setup Docker Buildx
+        if: steps.check.outputs.original == 'false' || steps.check.outputs.mod == 'false'
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        if: steps.check.outputs.original == 'false' || steps.check.outputs.mod == 'false'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push original image
+        if: steps.check.outputs.original == 'false'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:latest
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Build and push mod image
+        if: steps.check.outputs.mod == 'false'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.mod
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag_mod }}-mod
+            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:mod-latest
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Commit if built
+        if: steps.check.outputs.original == 'false' || steps.check.outputs.mod == 'false'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit --allow-empty -m "Built original: ${{ steps.get_tag.outputs.tag }} | mod: ${{ steps.get_tag.outputs.tag_mod }}"
+          git push
