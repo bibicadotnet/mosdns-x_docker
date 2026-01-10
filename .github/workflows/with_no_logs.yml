@@ -14,11 +14,13 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Get latest release tag
+      - name: Get latest release tags
         id: get_tag
         run: |
           LATEST_TAG=$(curl -s https://api.github.com/repos/pmkol/mosdns-x/releases/latest | jq -r .tag_name)
+          LATEST_TAG_NOIP=$(curl -s https://api.github.com/repos/bibicadotnet/mosdns-x/releases/latest | jq -r .tag_name)
           echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "tag_noip=$LATEST_TAG_NOIP" >> $GITHUB_OUTPUT
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -47,7 +49,7 @@ jobs:
           file: ./Dockerfile.noip
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag }}-noip
+            ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:${{ steps.get_tag.outputs.tag_noip }}-noip
             ${{ secrets.DOCKERHUB_USERNAME }}/mosdns-x:noip
           platforms: linux/amd64,linux/arm64
       
@@ -57,5 +59,5 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add .
-          git commit --allow-empty -m "Build version ${{ steps.get_tag.outputs.tag }}"
+          git commit --allow-empty -m "Build original: ${{ steps.get_tag.outputs.tag }}, noip: ${{ steps.get_tag.outputs.tag_noip }}"
           git push
