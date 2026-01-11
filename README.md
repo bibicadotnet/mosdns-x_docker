@@ -1,7 +1,4 @@
 # mosdns_docker
-Key
-```
-head -c 32 /dev/urandom > ./mosdns-x/.mosdns_stateless_reset.key
 ```
 compose.yml
 ```
@@ -23,8 +20,8 @@ services:
       - ./mosdns-x/config:/home/mosdns-x/config
       - ./mosdns-x/log:/home/mosdns-x/log
       - ./mosdns-x/rules:/home/mosdns-x/rules
-      - ./mosdns-x/.mosdns_stateless_reset.key:/home/mosdns-x/.mosdns_stateless_reset.key
-      - ./lego:/home/lego
+      - ./mosdns-x/key:/home/mosdns-x/key
+      - ./certbot:/home/mosdns-x/ssl:ro  # Mount SSL read-only
     networks:
       reverse_proxy:
         ipv4_address: 172.18.0.6
