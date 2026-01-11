@@ -12,9 +12,11 @@ RUN apk add --no-cache curl unzip ca-certificates tzdata && \
     mkdir -p /home/mosdns-x && \
     unzip -qo /tmp/mosdns.zip -d /home/mosdns-x && \
     chmod +x /home/mosdns-x/mosdns && \
+    rm -f /usr/local/bin/mosdns && \
     apk del curl unzip && \
     rm -rf /tmp/mosdns.zip /var/cache/apk/*
 
 WORKDIR /home/mosdns-x
 EXPOSE 53/tcp 53/udp 443/tcp 443/udp 853/tcp 853/udp 8090/tcp 8090/udp
+
 CMD ["/home/mosdns-x/mosdns", "start", "-c", "/home/mosdns-x/config/config.yaml", "-d", "/home/mosdns-x"]
