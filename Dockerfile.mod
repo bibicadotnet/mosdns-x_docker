@@ -16,6 +16,7 @@ RUN apk add --no-cache curl unzip ca-certificates tzdata && \
     apk del curl unzip && \
     rm -rf /tmp/mosdns.zip /var/cache/apk/*
 
+USER 65534
 WORKDIR /home/mosdns-x
 EXPOSE 53/tcp 53/udp 443/tcp 443/udp 853/tcp 853/udp 8090/tcp 8090/udp
 
